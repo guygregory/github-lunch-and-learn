@@ -3,6 +3,10 @@
 		"microsoft.docs.mcp": {
 			"type": "http",
 			"url": "https://learn.microsoft.com/api/mcp"
+		},
+		"excalidraw": {
+			"url": "https://excalidraw-mcp-app.vercel.app/mcp",
+			"type": "http"
 		}
 	},
 	"inputs": []
