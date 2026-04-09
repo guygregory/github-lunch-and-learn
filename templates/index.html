@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAI Image Gallery</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%23e0924a'/><rect x='7' y='7' width='18' height='18' rx='2' fill='%23120d07'/></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:           #09090b;
+            --surface:      #111115;
+            --card:         #17171c;
+            --card-hover:   #1e1e24;
+            --border:       #222228;
+            --border-hi:    #38332a;
+            --accent:       #e0924a;
+            --accent-dim:   #7a4e22;
+            --accent-glow:  rgba(224, 146, 74, 0.12);
+            --text:         #ece4d6;
+            --text-muted:   #6e665a;
+            --text-faint:   #332e28;
+            --ok-bg:        #0f1a12;
+            --ok-border:    #1d3622;
+            --ok-text:      #5faf74;
+            --err-bg:       #180f0f;
+            --err-border:   #3a1c1c;
+            --err-text:     #c46060;
+            --radius:       3px;
+            --ff-display:   'Playfair Display', Georgia, serif;
+            --ff-mono:      'JetBrains Mono', 'Courier New', monospace;
+        }
+
+        html { font-size: 16px; scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--bg);
+            background-image:
+                radial-gradient(ellipse 90% 40% at 50% -5%,
+                    rgba(224, 146, 74, 0.07) 0%,
+                    transparent 70%);
+            color: var(--text);
+            font-family: var(--ff-mono);
+            min-height: 100vh;
+        }
+
+        /* ── Layout ─────────────────────────────────────────── */
+        .wrap {
+            max-width: 1340px;
+            margin: 0 auto;
+            padding: 0 28px;
+        }
+
+        /* ── Header ─────────────────────────────────────────── */
+        .site-header {
+            padding: 52px 0 30px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-eyebrow {
+            display: block;
+            font-size: 10px;
+            font-weight: 400;
+            letter-spacing: 0.28em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 12px;
+        }
+
+        .site-header h1 {
+            font-family: var(--ff-display);
+            font-size: clamp(2.2rem, 4.5vw, 3.8rem);
+            font-weight: 400;
+            line-height: 0.95;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+
+        .site-header h1 em {
+            font-style: italic;
+            color: var(--accent);
+        }
+
+        .header-stat {
+            text-align: right;
+            padding-bottom: 3px;
+            flex-shrink: 0;
+        }
+
+        .header-stat .big {
+            display: block;
+            font-size: 2.4rem;
+            font-weight: 300;
+            line-height: 1;
+            color: var(--text);
+            margin-bottom: 5px;
+        }
+
+        .header-stat .label {
+            font-size: 10px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        /* ── Flash messages ──────────────────────────────────── */
+        .flash-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 20px 0 0;
+        }
+
+        .flash {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 16px;
+            font-size: 12px;
+            letter-spacing: 0.04em;
+            border-radius: var(--radius);
+            border: 1px solid;
+            border-left-width: 3px;
+        }
+
+        .flash.error {
+            background: var(--err-bg);
+            border-color: var(--err-border);
+            border-left-color: var(--err-text);
+            color: var(--err-text);
+        }
+
+        .flash.success {
+            background: var(--ok-bg);
+            border-color: var(--ok-border);
+            border-left-color: var(--ok-text);
+            color: var(--ok-text);
+        }
+
+        .flash-icon { font-style: normal; font-size: 13px; }
+
+        /* ── Generation form ─────────────────────────────────── */
+        .gen-section {
+            padding: 36px 0 40px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-label {
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 22px;
+        }
+
+        .gen-form {
+            display: grid;
+            grid-template-columns: 1fr 268px;
+            gap: 16px;
+            align-items: start;
+        }
+
+        @media (max-width: 700px) {
+            .gen-form { grid-template-columns: 1fr; }
+        }
+
+        /* Prompt textarea */
+        .field-label {
+            display: block;
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 9px;
+        }
+
+        .prompt-input {
+            width: 100%;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-family: var(--ff-mono);
+            font-size: 13px;
+            line-height: 1.65;
+            padding: 14px 16px;
+            border-radius: var(--radius);
+            resize: vertical;
+            min-height: 108px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .prompt-input:focus {
+            border-color: var(--accent-dim);
+            background: #131318;
+        }
+
+        .prompt-input::placeholder { color: var(--text-faint); }
+
+        /* Resolution panel */
+        .res-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .res-options {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        /* Hide native radio */
+        .res-opt input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .res-opt label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 13px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            transition: border-color 0.15s, color 0.15s, background 0.15s;
+            user-select: none;
+        }
+
+        .res-opt label:hover {
+            border-color: var(--border-hi);
+            color: var(--text);
+        }
+
+        .res-opt input[type="radio"]:checked + label {
+            border-color: var(--accent);
+            color: var(--text);
+            background: var(--accent-glow);
+        }
+
+        .res-pip {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            border: 1px solid var(--text-faint);
+            flex-shrink: 0;
+            transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .res-opt input[type="radio"]:checked + label .res-pip {
+            background: var(--accent);
+            border-color: var(--accent);
+            box-shadow: 0 0 7px rgba(224, 146, 74, 0.55);
+        }
+
+        .res-badge {
+            margin-left: auto;
+            font-size: 10px;
+            letter-spacing: 0.06em;
+            color: var(--text-faint);
+        }
+
+        .res-opt input[type="radio"]:checked + label .res-badge {
+            color: var(--accent-dim);
+        }
+
+        /* Custom dimension inputs */
+        .custom-row {
+            display: none;
+            gap: 8px;
+        }
+
+        .custom-row.open { display: flex; }
+
+        .custom-row input[type="number"] {
+            flex: 1;
+            min-width: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-family: var(--ff-mono);
+            font-size: 13px;
+            padding: 9px 11px;
+            border-radius: var(--radius);
+            outline: none;
+            transition: border-color 0.2s;
+            -moz-appearance: textfield;
+        }
+
+        .custom-row input[type="number"]::-webkit-outer-spin-button,
+        .custom-row input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+        }
+
+        .custom-row input[type="number"]:focus { border-color: var(--accent-dim); }
+        .custom-row input[type="number"]::placeholder { color: var(--text-faint); }
+
+        /* Generate button */
+        .btn-gen {
+            width: 100%;
+            padding: 13px 20px;
+            background: var(--accent);
+            color: #0a0908;
+            font-family: var(--ff-mono);
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: background 0.15s;
+        }
+
+        .btn-gen:hover { background: #eca05a; }
+        .btn-gen:active { transform: scale(0.995); }
+
+        .btn-gen.busy {
+            pointer-events: none;
+            background: var(--accent-dim);
+            color: transparent;
+        }
+
+        .btn-gen.busy::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            display: block;
+            background: repeating-linear-gradient(
+                90deg,
+                rgba(255,255,255,0) 0px,
+                rgba(255,255,255,0) 6px,
+                rgba(255,255,255,0.18) 6px,
+                rgba(255,255,255,0.18) 7px
+            );
+            background-size: 200% 100%;
+            animation: sweep 1.4s linear infinite;
+        }
+
+        @keyframes sweep {
+            from { background-position: 200% 0; }
+            to   { background-position: -200% 0; }
+        }
+
+        /* ── Gallery ────────────────────────────────────────── */
+        .gallery-section {
+            padding: 40px 0 100px;
+        }
+
+        .gallery-header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .gallery-empty {
+            padding: 100px 0;
+            text-align: center;
+        }
+
+        .gallery-empty .empty-glyph {
+            display: block;
+            font-size: 52px;
+            margin-bottom: 20px;
+            opacity: 0.15;
+            line-height: 1;
+        }
+
+        .gallery-empty p {
+            font-size: 13px;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+        }
+
+        /* Grid */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+            gap: 3px;
+        }
+
+        /* Card */
+        .gcard {
+            background: var(--card);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            cursor: default;
+            animation: card-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+            animation-delay: calc(var(--n, 0) * 0.04s);
+            position: relative;
+        }
+
+        @keyframes card-rise {
+            from { opacity: 0; transform: translateY(14px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Amber border on hover via pseudo */
+        .gcard::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border: 1px solid transparent;
+            pointer-events: none;
+            transition: border-color 0.25s;
+            z-index: 4;
+        }
+
+        .gcard:hover::after {
+            border-color: rgba(224, 146, 74, 0.35);
+        }
+
+        .gcard-imgwrap {
+            overflow: hidden;
+            aspect-ratio: 1 / 1;
+            position: relative;
+            background: #0d0d10;
+        }
+
+        .gcard-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+                        filter 0.4s;
+        }
+
+        .gcard:hover .gcard-img {
+            transform: scale(1.045);
+            filter: brightness(1.06);
+        }
+
+        /* Scrim: visible on hover to emphasize content area */
+        .gcard-scrim {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(9,9,11,0.7) 0%, transparent 55%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 2;
+        }
+
+        .gcard:hover .gcard-scrim { opacity: 1; }
+
+        /* Content strip */
+        .gcard-body {
+            padding: 13px 15px 14px;
+            background: var(--card);
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .gcard-prompt {
+            font-family: var(--ff-display);
+            font-size: 15px;
+            font-weight: 400;
+            line-height: 1.42;
+            color: var(--text);
+            margin-bottom: 9px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .gcard-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .gcard-dims {
+            font-size: 10px;
+            letter-spacing: 0.07em;
+            color: var(--accent);
+            opacity: 0.65;
+        }
+
+        .gcard-date {
+            font-size: 10px;
+            letter-spacing: 0.04em;
+            color: var(--text-muted);
+        }
+
+        /* ── Generating overlay ──────────────────────────────── */
+        #devOverlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: rgba(9, 9, 11, 0.88);
+            backdrop-filter: blur(6px);
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        #devOverlay.on { display: flex; }
+
+        .dev-spinner {
+            width: 42px;
+            height: 42px;
+            border: 1px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.75s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #devOverlay p {
+            font-size: 11px;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        /* ── Darkroom grain overlay ──────────────────────────── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0.028;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+        }
+    </style>
+</head>
+<body>
+
+<!-- Developing overlay -->
+<div id="devOverlay">
+    <div class="dev-spinner"></div>
+    <p>Developing image&hellip;</p>
+</div>
+
+<div class="wrap">
+
+    <!-- ── Header ──────────────────────────────────────────── -->
+    <header class="site-header">
+        <div>
+            <span class="header-eyebrow">Azure AI Foundry &mdash; MAI Image 2</span>
+            <h1>Image <em>Gallery</em></h1>
+        </div>
+        <div class="header-stat">
+            <span class="big">{{ items | length }}</span>
+            <span class="label">image{{ 's' if items | length != 1 else '' }} on film</span>
+        </div>
+    </header>
+
+    <!-- ── Flash messages ──────────────────────────────────── -->
+    {% with messages = get_flashed_messages(with_categories=True) %}
+    {% if messages %}
+    <div class="flash-list">
+        {% for category, message in messages %}
+        <div class="flash {{ category }}">
+            <i class="flash-icon">{{ '✗' if category == 'error' else '✓' }}</i>
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- ── Generation form ─────────────────────────────────── -->
+    <section class="gen-section">
+        <p class="section-label">// Generate</p>
+        <form class="gen-form" action="/generate" method="post" id="genForm" novalidate>
+
+            <!-- Prompt -->
+            <div>
+                <label class="field-label" for="prompt">Prompt</label>
+                <textarea
+                    id="prompt"
+                    name="prompt"
+                    class="prompt-input"
+                    rows="4"
+                    placeholder="Describe the image you want to develop…"
+                    autocomplete="off"
+                ></textarea>
+            </div>
+
+            <!-- Resolution + submit -->
+            <div class="res-panel">
+                <div>
+                    <label class="field-label">Resolution</label>
+                    <div class="res-options">
+                        <div class="res-opt">
+                            <input type="radio" name="resolution" id="r512" value="512" checked>
+                            <label for="r512">
+                                <span class="res-pip"></span>
+                                512 &times; 512
+                                <span class="res-badge">default</span>
+                            </label>
+                        </div>
+                        <div class="res-opt">
+                            <input type="radio" name="resolution" id="r1024" value="1024">
+                            <label for="r1024">
+                                <span class="res-pip"></span>
+                                1024 &times; 1024
+                            </label>
+                        </div>
+                        <div class="res-opt">
+                            <input type="radio" name="resolution" id="rCustom" value="custom">
+                            <label for="rCustom">
+                                <span class="res-pip"></span>
+                                Custom
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Custom dimension inputs (shown when Custom selected) -->
+                    <div class="custom-row" id="customRow">
+                        <input type="number" name="custom_width" id="cW"
+                            placeholder="W" min="64" max="2048" autocomplete="off">
+                        <input type="number" name="custom_height" id="cH"
+                            placeholder="H" min="64" max="2048" autocomplete="off">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-gen" id="genBtn">
+                    Generate
+                </button>
+            </div>
+
+        </form>
+    </section>
+
+    <!-- ── Gallery ──────────────────────────────────────────── -->
+    <section class="gallery-section">
+
+        {% if items %}
+        <div class="gallery-header">
+            <p class="section-label">// Gallery</p>
+        </div>
+        <div class="gallery-grid">
+            {% for item in items %}
+            <article class="gcard" style="--n: {{ loop.index0 if loop.index0 < 20 else 20 }}">
+                <div class="gcard-imgwrap">
+                    <div class="gcard-scrim"></div>
+                    <img
+                        class="gcard-img"
+                        src="{{ url_for('static', filename='generated/' + item.filename) }}"
+                        alt="{{ item.prompt[:80] }}"
+                        loading="lazy"
+                    >
+                </div>
+                <div class="gcard-body">
+                    <p class="gcard-prompt">{{ item.prompt }}</p>
+                    <div class="gcard-meta">
+                        <span class="gcard-dims">{{ item.width }}&thinsp;&times;&thinsp;{{ item.height }}</span>
+                        <span class="gcard-date">{{ item.created_at[:10] }}</span>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+
+        {% else %}
+        <div class="gallery-empty">
+            <span class="empty-glyph">&#9633;</span>
+            <p>No images yet &mdash; generate your first above.</p>
+        </div>
+        {% endif %}
+
+    </section>
+
+</div><!-- /wrap -->
+
+<script>
+(function () {
+    "use strict";
+
+    // ── Custom resolution toggle ───────────────────────────────────────────
+    const rCustom    = document.getElementById("rCustom");
+    const customRow  = document.getElementById("customRow");
+    const allRadios  = document.querySelectorAll("input[name='resolution']");
+
+    function syncCustomRow() {
+        customRow.classList.toggle("open", rCustom.checked);
+        if (rCustom.checked) {
+            document.getElementById("cW").focus();
+        }
+    }
+
+    allRadios.forEach(function (r) { r.addEventListener("change", syncCustomRow); });
+    syncCustomRow(); // set initial state
+
+    // ── Form submit: show developing overlay ───────────────────────────────
+    const form    = document.getElementById("genForm");
+    const overlay = document.getElementById("devOverlay");
+    const genBtn  = document.getElementById("genBtn");
+
+    form.addEventListener("submit", function (e) {
+        // Only show overlay if basic client-side preconditions look satisfied.
+        // Server-side validation is authoritative; this just improves UX.
+        var prompt = document.getElementById("prompt").value.trim();
+        if (!prompt) return;
+
+        if (rCustom.checked) {
+            var w = document.getElementById("cW").value;
+            var h = document.getElementById("cH").value;
+            if (!w || !h) return;
+        }
+
+        overlay.classList.add("on");
+        genBtn.classList.add("busy");
+        genBtn.textContent = "";
+    });
+
+}());
+</script>
+
+</body>
+</html>
